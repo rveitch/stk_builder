@@ -43,3 +43,8 @@ it('rejects excessive small chunks before expanding them into UI metadata', () =
   }
   expect(() => readStk(bytes)).toThrow(/chunk limit/i);
 });
+it('owns source bytes even when input is a Node Buffer', async () => {
+  const { Buffer } = await import('node:buffer'); const bytes = Buffer.from(makeKit());
+  const kit = readStk(bytes); bytes[288]=127;
+  expect(kit.source[288]).toBe(56); expect(kit.slots[0]!.rawRecord[256]).toBe(56);
+});

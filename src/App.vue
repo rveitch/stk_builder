@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import SampleImport from './components/SampleImport.vue';
+import { useSampleImport } from './composables/useSampleImport';
 import ParameterEditor from './components/ParameterEditor.vue';
 import { canEditKit, writeStk, type SlotEdit } from './core/writeStk';
 import { downloadKit } from './files/downloadKit';
@@ -13,7 +15,19 @@ import { getKitSummary, getSlotDetails } from './core/inspectKit';
 const playing = ref(false); const previewBusy = ref(false); const previewError = ref(''); let previewGeneration = 0;
 const player = createPreviewPlayer(undefined, () => { playing.value = false; });
 function stop() { previewGeneration += 1; player.stop(); playing.value = false; previewBusy.value = false; previewError.value = ''; }
-const { dirty, editSlot, resetEdits, kit, filename, selectedSlot, loading, error, importFile, selectSlot, dispose } = useKitInspector(stop);
+const { replaceSlotSample, dirty, editSlot, resetEdits, kit, filename, selectedSlot, loading, error, importFile, selectSlot, dispose } = useKitInspector(stop);
+const sampleImport = useSampleImport(undefined,stop);
+const { source: sampleSource, name: sampleName, error: sampleError, busy: sampleBusy, start: sampleStart, end: sampleEnd, prepared: preparedSample } = sampleImport;
+watch([kit,selectedSlot,loading], () => sampleImport.clear(), {flush:'sync'});
+async function loadSample(slot: number,file: File) {
+  if (!kit.value || loading.value || !canEditKit(kit.value)) return;
+  selectSlot(slot); exportStatus.value=''; await sampleImport.load(file);
+}
+function applySample() {
+  if (!preparedSample.value || !kit.value || loading.value) return;
+  try { replaceSlotSample(selectedSlot.value,preparedSample.value,sampleName.value); editError.value=''; exportStatus.value='Sample applied. Export a copy to save your kit.'; }
+  catch (cause) { editError.value=cause instanceof Error ? cause.message : 'Unable to replace sample.'; }
+}
 const editError = ref(''); const exportStatus = ref('');
 function applySettings(values: SlotEdit['values']) {
   try { editSlot(selectedSlot.value, values); editError.value = ''; exportStatus.value = ''; }
@@ -37,12 +51,15 @@ const rawOpen = ref(false);
 const raw = computed(() => kit.value ? { header: kit.value.header, slotRecordHex: Array.from(kit.value.slots[selectedSlot.value - 1]!.rawRecord, byte => byte.toString(16).padStart(2, '0')).join(' '), chunkCount: kit.value.chunks.length, chunks: kit.value.chunks.slice(0, 100) } : null);
 async function play() {
   const sample = kit.value?.slots[selectedSlot.value - 1]?.sample; if (!sample?.info.previewSupported) return;
+  await playBytes(sample.bytes);
+}
+async function playBytes(bytes: Uint8Array) {
   stop(); const current = previewGeneration; previewBusy.value = true;
-  try { await player.play(sample.bytes); if (current === previewGeneration) playing.value = true; }
+  try { await player.play(bytes); if (current === previewGeneration) playing.value = true; }
   catch (cause) { if (current === previewGeneration) previewError.value = cause instanceof Error ? cause.message : 'Preview failed.'; }
   finally { if (current === previewGeneration) previewBusy.value = false; }
 }
-onBeforeUnmount(() => { window.removeEventListener('beforeunload', guardNavigation); dispose(); void player.dispose(); });
+onBeforeUnmount(() => { window.removeEventListener('beforeunload', guardNavigation); sampleImport.clear(); dispose(); void player.dispose(); });
 </script>
 <template>
   <div class="app-shell">
@@ -80,7 +97,7 @@ onBeforeUnmount(() => { window.removeEventListener('beforeunload', guardNavigati
       >
         <div>
           <strong>{{ dirty ? 'Applied edits ready to export' : 'Original kit · unchanged' }}</strong><p class="muted">
-            Exports preserve audio and unedited settings. Device validation is pending.
+            Parameter exports verified on SmplTrek. Sample replacement is experimental; unedited slots are preserved.
           </p>
         </div>
         <div class="export-actions">
@@ -114,6 +131,7 @@ onBeforeUnmount(() => { window.removeEventListener('beforeunload', guardNavigati
           :kit="kit"
           :selected-slot="selectedSlot"
           @select="selectSlot"
+          @sample="loadSample"
         />
         <footer class="pad-caption">
           <span>Upper: even slots · Lower: odd slots</span><span>{{ kit ? 'Select a pad to inspect' : 'Open a kit to get started' }}</span>
@@ -126,6 +144,26 @@ onBeforeUnmount(() => { window.removeEventListener('beforeunload', guardNavigati
         :busy="previewBusy"
         @play="play"
         @stop="stop"
+      />
+      <SampleImport
+        v-if="kit && canEditKit(kit)"
+        v-model:start="sampleStart"
+        v-model:end="sampleEnd"
+        :slot-number="selectedSlot"
+        :name="sampleName"
+        :duration="sampleSource ? sampleSource.channels[0]!.length / sampleSource.sampleRate : 0"
+        :channels="sampleSource?.channels.length ?? 1"
+        :sample-rate="sampleSource?.sampleRate ?? 48000"
+        :busy="sampleBusy"
+        :prepared="Boolean(preparedSample)"
+        :error="sampleError"
+        :disabled="loading"
+        @file="loadSample(selectedSlot, $event)"
+        @prepare="sampleImport.prepare"
+        @preview="preparedSample && playBytes(preparedSample)"
+        @stop="stop"
+        @apply="applySample"
+        @cancel="sampleImport.clear"
       />
       <ParameterEditor
         v-if="kit && canEditKit(kit)"

@@ -10,7 +10,7 @@ A local browser workspace for inspecting and editing Sonicware SmplTrek drum kit
 - Preview embedded PCM samples at reduced volume, without emulating hardware processing.
 - Optionally expose three read-only WebMCP tools to a connected agent.
 
-Edit level, pan, and FX send, then export an STK copy while preserving audio and unknown metadata. Sample conversion, new-kit creation, and a command-line interface remain planned. Device validation of edited exports is pending.
+Edit level, pan, and FX send, then export an STK copy while preserving audio and unknown metadata. WAV replacement and conversion are available. New-kit creation and a command-line interface remain planned. Parameter exports have been verified on the SmplTrek; sample replacement awaits a separate device check.
 
 ## Development
 
@@ -66,4 +66,14 @@ Apply level (0–127), signed pan (temporarily L53–R53), and FX send (0–127)
 
 Unchanged exports are byte-identical. Edited exports patch only requested parameter bytes and retain all audio and unknown data. Original files are never overwritten by the app. Unrecognized kit settings versions support unchanged export only. WebMCP remains read-only and reports applied edits. The shared `writeStk` function can also serve a future CLI.
 
-Device validation is pending. Prepared Rock test copies are outside the repository: the edited test changes slot 6 to level 60, pan R20, and FX send 30. Sample replacement, WAV conversion, and new-kit creation will follow successful device validation.
+Ryan confirmed both the unchanged Rock export and edited slot 6 settings (level 60, pan R20, FX send 30) load and work on the SmplTrek on 2026-10-06. This confirms parameter editing for the tested kit, not all STK variants.
+
+## WAV replacement
+
+Choose a pad, then **Choose WAV**, or drop a WAV directly onto the target pad. Set start/end times, select **Prepare sample**, audition **Preview converted**, then **Apply to slot**. Finally export the kit. Conversion alone does not change the kit. Switching pads, resetting, applying parameter changes, or loading another kit cancels the staged replacement. Reset restores the complete imported kit, including its original audio.
+
+Supports mono/stereo integer PCM 8/16/24/32-bit and IEEE float 32/64-bit WAV at 8–192 kHz. Compressed and extensible WAV formats are currently rejected. Source limits: 32 MiB and 60 seconds. Output is 48kHz/16-bit PCM, at most 5.4 seconds mono or 2.7 seconds stereo. Long sources require an explicit trim; no automatic shortening, normalization, fades, or dithering. Out-of-range floating-point peaks are clipped at encoding. WAV ancillary metadata is omitted from the replacement audio; all non-target STK records and chunks remain verbatim. Existing pad parameters are retained.
+
+The pure core handles WAV parsing/encoding and STK rebuilding. Browser resampling uses OfflineAudioContext. Both observed outer-size conventions are retained. Unrecognized size conventions, target sample markers, or nonstandard trailers are rejected rather than guessed. New samples use sanitized embedded paths; no source WAV is written to disk.
+
+Sample replacement needs device validation. In-app browser conversion was exercised using 44.1kHz float audio, explicit trimming and preview, but its download was not observed on disk. Automated Chrome file selection requires the extension's file-URL permission, which was not enabled during this run. Download checks from the previous milestone remain valid for the tested export path; new sample exports are validated in core and supplied as local test files.

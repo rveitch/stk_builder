@@ -8,7 +8,7 @@ export function readStk(bytes: Uint8Array): Kit {
   const kitSize = readUint32(bytes, 20);
   if (kitSize < 4228) throw new FormatError('KTDT_SIZE', 20, 'Kit settings are incomplete');
   requireBytes(bytes, 16, kitSize);
-  const source = bytes.slice();
+  const source = new Uint8Array(bytes);
   const kit: Kit = { source, slots: [], chunks: [{ tag: 'KTDT', offset: 16, size: kitSize }], header: { size: readUint32(bytes, 4), count: readUint32(bytes, 12) }, diagnostics: [] };
   function warning(code: string, message: string, offset: number, slot?: number) { kit.diagnostics.push({ severity: 'warning', code, message, offset, slot }); }
   if (readUint32(bytes, 28) !== 1) warning('KTDT_VERSION', 'Unrecognized kit settings marker; interpretations may differ.', 28);

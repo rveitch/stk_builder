@@ -49,3 +49,10 @@ it('returns to clean state when edits restore original values', async () => {
   const state = useKitInspector(); await state.importFile(file('good.stk', async () => makeKit().buffer as ArrayBuffer));
   state.editSlot(1, { level: 80 }); state.editSlot(1, { level: 56 }); expect(state.dirty.value).toBe(false);
 });
+it('detects audio-only replacements and resets the complete kit', async () => {
+  const state = useKitInspector(); await state.importFile(file('good.stk', async () => makeKit().buffer as ArrayBuffer));
+  const original = state.kit.value!.source.slice();
+  const { encodePcm16 } = await import('../core/sampleAudio');
+  state.replaceSlotSample(1,encodePcm16([new Float32Array([0.2,0.3])]),'Sample0.wav');
+  expect(state.dirty.value).toBe(true); state.resetEdits(); expect(state.kit.value!.source).toEqual(original); expect(state.dirty.value).toBe(false);
+});

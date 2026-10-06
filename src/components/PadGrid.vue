@@ -3,7 +3,8 @@ import type { Kit } from '../core/types';
 import { padRows } from '../presentation/padLayout';
 import { getPadColor } from '../presentation/padPalette';
 defineProps<{ kit: Kit | null; selectedSlot: number }>();
-defineEmits<{ select: [slot: number] }>();
+const emit = defineEmits<{ select: [slot: number]; sample: [slot: number, file: File] }>();
+function dropSample(slot: number, event: DragEvent) { const file=event.dataTransfer?.files[0]; if (file) emit('sample',slot,file); }
 </script>
 <template>
   <div
@@ -28,6 +29,8 @@ defineEmits<{ select: [slot: number] }>();
           :aria-label="`Slot ${number}: ${kit?.slots[number - 1]?.path.split('/').at(-1) || 'Empty'}`"
           :style="{ '--pad-color': getPadColor(kit?.slots[number - 1]?.parameters.colorCode ?? 0).hex }"
           @click="$emit('select', number)"
+          @dragover.prevent
+          @drop.prevent.stop="dropSample(number, $event)"
         >
           <span class="pad-number">{{ String(number).padStart(2, '0') }}</span>
           <span class="pad-name">{{ kit?.slots[number - 1]?.path.split('/').at(-1)?.replace(/\.wav$/i, '') || 'Empty' }}</span>

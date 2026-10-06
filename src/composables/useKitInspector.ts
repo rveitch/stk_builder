@@ -1,10 +1,11 @@
+import { replaceSample } from '../core/replaceSample';
 import { computed, ref, shallowRef } from 'vue';
 import { writeStk, type SlotEdit } from '../core/writeStk';
 import { readStk } from '../core/readStk';
 import { maxImportBytes, type Kit } from '../core/types';
 export function useKitInspector(onChange: () => void = () => {}) {
   const original = shallowRef<Kit | null>(null);
-  const dirty = computed(() => Boolean(kit.value && original.value && kit.value.slots.some((slot, index) => slot.rawRecord.some((byte, offset) => byte !== original.value!.slots[index]!.rawRecord[offset]))));
+  const dirty = computed(() => Boolean(kit.value && original.value && (kit.value.source.length !== original.value.source.length || kit.value.source.some((byte,index) => byte !== original.value!.source[index]))));
   const kit = shallowRef<Kit | null>(null); const filename = ref(''); const selectedSlot = ref(1);
   const loading = ref(false); const error = ref(''); let generation = 0;
   async function importFile(file: Pick<File, 'name' | 'size' | 'arrayBuffer'>) {
@@ -23,8 +24,13 @@ export function useKitInspector(onChange: () => void = () => {}) {
     if (!kit.value) throw new Error('Open a kit first.');
     const updated = readStk(writeStk(kit.value, [{ slotNumber, values }])); onChange(); kit.value = updated;
   }
+  function replaceSlotSample(slotNumber: number, wav: Uint8Array, name: string) {
+    if (loading.value) throw new Error('Please wait until the kit finishes reading.');
+    if (!kit.value) throw new Error('Open a kit first.');
+    const updated = readStk(replaceSample(kit.value,slotNumber,wav,name)); onChange(); kit.value=updated;
+  }
   function resetEdits() { if (!loading.value && original.value) { onChange(); kit.value = original.value; } }
   function selectSlot(slot: number) { if (Number.isInteger(slot) && slot >= 1 && slot <= 15) { onChange(); selectedSlot.value = slot; } }
   function dispose() { generation += 1; onChange(); kit.value = null; original.value = null; loading.value = false; }
-  return { dirty, editSlot, resetEdits, kit, filename, selectedSlot, loading, error, importFile, selectSlot, dispose };
+  return { replaceSlotSample, dirty, editSlot, resetEdits, kit, filename, selectedSlot, loading, error, importFile, selectSlot, dispose };
 }
