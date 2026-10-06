@@ -32,3 +32,10 @@ Browser-based Sonicware SmplTrek drum kit creation and editing. Process samples 
 - The project is intended to use MIT licensing. Independently implement from verified format observations.
 - The community `jblamber/stk_writer` code is LGPL 2.1. Do not copy or directly translate that code into MIT-only source.
 - Do not assume factory samples or third-party artwork are covered by this repository's code license.
+
+## Export boundaries
+
+- `writeStk` copies source bytes and patches only level, pan, and FX send. Never reconstruct unknown fields or embedded WAVs for parameter-only edits.
+- Pan editing is temporarily restricted to the observed -53..53 range; this is an app limit, not a verified hardware limit.
+- Keep original imported kit for reset. Agent inspection follows applied edits; WebMCP mutation is not enabled.
+- Device validation is required before claiming edited exports are hardware-compatible.

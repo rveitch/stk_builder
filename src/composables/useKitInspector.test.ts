@@ -30,3 +30,22 @@ it('stops playback started while a replacement kit is still reading', async () =
   finish(makeKit([2]).buffer as ArrayBuffer); await pending;
   expect(state.filename.value).toBe('next.stk'); expect(playing).toBe(false);
 });
+it('edits current metadata, exports a copy, and resets to original', async () => {
+  const state = useKitInspector(); await state.importFile(file('good.stk', async () => makeKit().buffer as ArrayBuffer));
+  state.editSlot(6, { level: 80, pan: 0 });
+  expect(state.kit.value!.slots[5]!.parameters.level).toBe(80); expect(state.dirty.value).toBe(true);
+  state.resetEdits(); expect(state.kit.value!.slots[5]!.parameters.level).toBe(56); expect(state.dirty.value).toBe(false);
+});
+it('blocks edits during replacement and preserves changes after failed import', async () => {
+  const state = useKitInspector(); await state.importFile(file('good.stk', async () => makeKit().buffer as ArrayBuffer)); state.editSlot(1, { level: 80 });
+  let finish!: (value: ArrayBuffer) => void;
+  const pending = state.importFile(file('bad.stk', () => new Promise(resolve => { finish = resolve; })));
+  expect(() => state.editSlot(1, { level: 70 })).toThrow(/reading/i);
+  finish(new ArrayBuffer(0)); await pending;
+  expect(state.dirty.value).toBe(true); expect(state.kit.value!.slots[0]!.parameters.level).toBe(80);
+  await state.importFile(file('new.stk', async () => makeKit([2]).buffer as ArrayBuffer)); expect(state.dirty.value).toBe(false);
+});
+it('returns to clean state when edits restore original values', async () => {
+  const state = useKitInspector(); await state.importFile(file('good.stk', async () => makeKit().buffer as ArrayBuffer));
+  state.editSlot(1, { level: 80 }); state.editSlot(1, { level: 56 }); expect(state.dirty.value).toBe(false);
+});

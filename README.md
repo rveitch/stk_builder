@@ -1,6 +1,6 @@
 # STK Builder
 
-A local browser workspace for inspecting Sonicware SmplTrek drum kits. Built with Vue 3, TypeScript, Vite, Vitest, and ESLint.
+A local browser workspace for inspecting and editing Sonicware SmplTrek drum kits. Built with Vue 3, TypeScript, Vite, Vitest, and ESLint.
 
 ## Current milestone
 
@@ -10,7 +10,7 @@ A local browser workspace for inspecting Sonicware SmplTrek drum kits. Built wit
 - Preview embedded PCM samples at reduced volume, without emulating hardware processing.
 - Optionally expose three read-only WebMCP tools to a connected agent.
 
-Kit editing, STK export, sample conversion, and a command-line interface are planned next. This version does not write or change your kit files.
+Edit level, pan, and FX send, then export an STK copy while preserving audio and unknown metadata. Sample conversion, new-kit creation, and a command-line interface remain planned. Device validation of edited exports is pending.
 
 ## Development
 
@@ -59,3 +59,11 @@ This experimental adapter targets the current `document.modelContext.registerToo
 The core uses byte arrays rather than browser files or Node filesystem APIs so a future CLI can reuse it. Browser and CLI audio conversion will need separate environment adapters around shared format/kit rules.
 
 MIT licensed. Independent project, not affiliated with Sonicware. Third-party kits and samples retain their own rights.
+
+## Parameter editing and export
+
+Apply level (0–127), signed pan (temporarily L53–R53), and FX send (0–127), then choose **Export STK copy**. Apply settings before selecting another pad. Reset all edits restores the imported kit. Exporting does not clear the edited status, which describes differences from the import. Preview still plays original audio without device processing.
+
+Unchanged exports are byte-identical. Edited exports patch only requested parameter bytes and retain all audio and unknown data. Original files are never overwritten by the app. Unrecognized kit settings versions support unchanged export only. WebMCP remains read-only and reports applied edits. The shared `writeStk` function can also serve a future CLI.
+
+Device validation is pending. Prepared Rock test copies are outside the repository: the edited test changes slot 6 to level 60, pan R20, and FX send 30. Sample replacement, WAV conversion, and new-kit creation will follow successful device validation.

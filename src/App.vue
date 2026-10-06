@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import ParameterEditor from './components/ParameterEditor.vue';
+import { canEditKit, writeStk, type SlotEdit } from './core/writeStk';
+import { downloadKit } from './files/downloadKit';
 import AgentAccess from './components/AgentAccess.vue';
 import KitImport from './components/KitImport.vue';
 import PadGrid from './components/PadGrid.vue';
@@ -10,7 +13,24 @@ import { getKitSummary, getSlotDetails } from './core/inspectKit';
 const playing = ref(false); const previewBusy = ref(false); const previewError = ref(''); let previewGeneration = 0;
 const player = createPreviewPlayer(undefined, () => { playing.value = false; });
 function stop() { previewGeneration += 1; player.stop(); playing.value = false; previewBusy.value = false; previewError.value = ''; }
-const { kit, filename, selectedSlot, loading, error, importFile, selectSlot, dispose } = useKitInspector(stop);
+const { dirty, editSlot, resetEdits, kit, filename, selectedSlot, loading, error, importFile, selectSlot, dispose } = useKitInspector(stop);
+const editError = ref(''); const exportStatus = ref('');
+function applySettings(values: SlotEdit['values']) {
+  try { editSlot(selectedSlot.value, values); editError.value = ''; exportStatus.value = ''; }
+  catch (cause) { editError.value = cause instanceof Error ? cause.message : 'Unable to apply settings.'; }
+}
+async function replaceKit(file: File) {
+  if (dirty.value && !window.confirm('Replace this kit and discard its applied edits? Export a copy first to keep them.')) return;
+  editError.value = ''; exportStatus.value = ''; await importFile(file);
+}
+function exportKit() {
+  if (!kit.value || loading.value) return;
+  try { downloadKit(writeStk(kit.value), filename.value, dirty.value); exportStatus.value = 'Download requested. Your imported file is unchanged.'; editError.value = ''; }
+  catch (cause) { editError.value = cause instanceof Error ? cause.message : 'Unable to export kit.'; }
+}
+function reset() { resetEdits(); editError.value = ''; exportStatus.value = ''; }
+function guardNavigation(event: BeforeUnloadEvent) { if (dirty.value) { event.preventDefault(); event.returnValue = ''; } }
+onMounted(() => window.addEventListener('beforeunload', guardNavigation));
 const summary = computed(() => kit.value ? getKitSummary(kit.value) : null);
 const details = computed(() => kit.value ? getSlotDetails(kit.value, selectedSlot.value) : null);
 const rawOpen = ref(false);
@@ -22,7 +42,7 @@ async function play() {
   catch (cause) { if (current === previewGeneration) previewError.value = cause instanceof Error ? cause.message : 'Preview failed.'; }
   finally { if (current === previewGeneration) previewBusy.value = false; }
 }
-onBeforeUnmount(() => { dispose(); void player.dispose(); });
+onBeforeUnmount(() => { window.removeEventListener('beforeunload', guardNavigation); dispose(); void player.dispose(); });
 </script>
 <template>
   <div class="app-shell">
@@ -34,12 +54,12 @@ onBeforeUnmount(() => { dispose(); void player.dispose(); });
     </header>
     <main>
       <div class="page-heading">
-        <div><span class="eyebrow">KIT INSPECTOR / 01</span><h1>Meet your kit.</h1><p>Explore every sample, slot, and setting.</p></div><span class="version-label">IMPORT & INSPECT<br>PREVIEW RELEASE</span>
+        <div><span class="eyebrow">KIT INSPECTOR / 01</span><h1>Meet your kit.</h1><p>Explore every sample, slot, and setting.</p></div><span class="version-label">EDIT & EXPORT<br>PREVIEW RELEASE</span>
       </div>
       <KitImport
         :loading="loading"
         :compact="Boolean(kit)"
-        @import="importFile"
+        @import="replaceKit"
       />
       <p
         v-if="error"
@@ -53,6 +73,38 @@ onBeforeUnmount(() => { dispose(); void player.dispose(); });
         class="muted"
       >
         Reading kit…
+      </p>
+      <section
+        v-if="kit"
+        class="export-panel"
+      >
+        <div>
+          <strong>{{ dirty ? 'Applied edits ready to export' : 'Original kit · unchanged' }}</strong><p class="muted">
+            Exports preserve audio and unedited settings. Device validation is pending.
+          </p>
+        </div>
+        <div class="export-actions">
+          <button
+            class="secondary-button"
+            :disabled="!dirty || loading"
+            @click="reset"
+          >
+            Reset all edits
+          </button><button
+            class="primary-button"
+            :disabled="loading"
+            @click="exportKit"
+          >
+            Export STK copy
+          </button>
+        </div>
+      </section>
+      <p
+        v-if="exportStatus"
+        role="status"
+        class="muted"
+      >
+        {{ exportStatus }}
       </p>
       <section class="kit-panel">
         <header class="section-heading">
@@ -75,6 +127,26 @@ onBeforeUnmount(() => { dispose(); void player.dispose(); });
         @play="play"
         @stop="stop"
       />
+      <ParameterEditor
+        v-if="kit && canEditKit(kit)"
+        :key="selectedSlot"
+        :values="kit.slots[selectedSlot - 1]!.parameters"
+        :disabled="loading"
+        @apply="applySettings"
+      />
+      <p
+        v-else-if="kit"
+        class="notice"
+      >
+        This settings version supports unchanged export only.
+      </p>
+      <p
+        v-if="editError"
+        role="alert"
+        class="error-message"
+      >
+        {{ editError }}
+      </p>
       <p
         v-if="previewError"
         role="alert"
