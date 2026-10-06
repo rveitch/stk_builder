@@ -6,7 +6,8 @@ Browser-based Sonicware SmplTrek drum kit creation and editing. Process samples 
 
 - Follow `/Users/ryanveitch/nodejs/rveitch/rnd-synth-midi-control` for configuration conventions: Vue 3 Composition API, TypeScript, Vite, Vitest, and flat ESLint configuration.
 - Use Node 24 as specified by `.nvmrc`.
-- Keep binary STK parsing/writing and audio conversion separate from Vue components.
+- Keep business logic in src/core independent of Vue, DOM, Node filesystem, Web Audio, and WebMCP. Interfaces share core validation and inspection. Environment adapters own file access and audio.
+- WebMCP is optional and opt-in. Preserve revocation and current-kit semantics; never return audio bytes through inspection tools.
 - Use strict TypeScript, including unchecked-index checking.
 - Prefer const variables, camelCase names, and named module-level function declarations. Reserve arrow functions for callbacks and closures.
 - Avoid unary increment/decrement operators and em dashes in user-facing prose.
