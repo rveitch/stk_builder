@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import SampleImport from './components/SampleImport.vue';
-import { useSampleImport } from './composables/useSampleImport';
+import { usePadSamples } from './composables/usePadSamples';
+import PadEditor from './components/PadEditor.vue';
 import ParameterEditor from './components/ParameterEditor.vue';
 import { canEditKit, writeStk, type SlotEdit } from './core/writeStk';
 import { downloadKit } from './files/downloadKit';
@@ -15,18 +16,19 @@ import { getKitSummary, getSlotDetails } from './core/inspectKit';
 const playing = ref(false); const previewBusy = ref(false); const previewError = ref(''); let previewGeneration = 0;
 const player = createPreviewPlayer(undefined, () => { playing.value = false; });
 function stop() { previewGeneration += 1; player.stop(); playing.value = false; previewBusy.value = false; previewError.value = ''; }
-const { replaceSlotSample, dirty, editSlot, resetEdits, kit, filename, selectedSlot, loading, error, importFile, selectSlot, dispose } = useKitInspector(stop);
-const sampleImport = useSampleImport(undefined,stop);
-const { source: sampleSource, name: sampleName, error: sampleError, busy: sampleBusy, start: sampleStart, end: sampleEnd, prepared: preparedSample } = sampleImport;
-watch([kit,selectedSlot,loading], () => sampleImport.clear(), {flush:'sync'});
-async function loadSample(slot: number,file: File) {
-  if (!kit.value || loading.value || !canEditKit(kit.value)) return;
-  selectSlot(slot); exportStatus.value=''; await sampleImport.load(file);
+const { session, kitName, renameKit, newKit, modifyPad, replaceSlotSample, dirty, editSlot, resetEdits, kit, selectedSlot, loading, error, importFile, selectSlot, dispose } = useKitInspector(stop);
+const samples=usePadSamples((slot,bytes,name)=>{ replaceSlotSample(slot,bytes,name); exportStatus.value='Sample assigned.'; });
+const {busy:sampleBusy}=samples;
+watch(session,()=>samples.clear(),{flush:'sync'});
+function loadSample(slot:number,file:File){
+ if(!kit.value||loading.value||!canEditKit(kit.value))return;
+ selectSlot(slot);stop();exportStatus.value='';void samples.assign(slot,file);
 }
-function applySample() {
-  if (!preparedSample.value || !kit.value || loading.value) return;
-  try { replaceSlotSample(selectedSlot.value,preparedSample.value,sampleName.value); editError.value=''; exportStatus.value='Sample applied. Export a copy to save your kit.'; }
-  catch (cause) { editError.value=cause instanceof Error ? cause.message : 'Unable to replace sample.'; }
+function startNewKit(){if(dirty.value&&!window.confirm('Discard current changes and start a new kit?'))return;newKit();exportStatus.value='';editError.value='';}
+function changeKitName(event:Event){const input=event.target as HTMLInputElement;try{renameKit(input.value);editError.value='';}catch(cause){editError.value=(cause as Error).message;}input.value=kitName.value;}
+function editPad(operation:'clear'|'name'|'color',value:string|number=''){
+ try{if(operation==='clear')samples.cancel(selectedSlot.value);modifyPad(selectedSlot.value,operation,value);editError.value='';if(operation==='name')samples.rename(selectedSlot.value,String(value));}
+ catch(cause){editError.value=(cause as Error).message;}
 }
 const editError = ref(''); const exportStatus = ref('');
 function applySettings(values: SlotEdit['values']) {
@@ -38,8 +40,8 @@ async function replaceKit(file: File) {
   editError.value = ''; exportStatus.value = ''; await importFile(file);
 }
 function exportKit() {
-  if (!kit.value || loading.value) return;
-  try { downloadKit(writeStk(kit.value), filename.value, dirty.value); exportStatus.value = 'Download requested. Your imported file is unchanged.'; editError.value = ''; }
+  if (!kit.value || loading.value || sampleBusy.value || !kit.value.slots.some(slot=>slot.sample)) return;
+  try { downloadKit(writeStk(kit.value), kitName.value, dirty.value, true); exportStatus.value = 'Download requested. Your imported file is unchanged.'; editError.value = ''; }
   catch (cause) { editError.value = cause instanceof Error ? cause.message : 'Unable to export kit.'; }
 }
 function reset() { resetEdits(); editError.value = ''; exportStatus.value = ''; }
@@ -59,7 +61,7 @@ async function playBytes(bytes: Uint8Array) {
   catch (cause) { if (current === previewGeneration) previewError.value = cause instanceof Error ? cause.message : 'Preview failed.'; }
   finally { if (current === previewGeneration) previewBusy.value = false; }
 }
-onBeforeUnmount(() => { window.removeEventListener('beforeunload', guardNavigation); sampleImport.clear(); dispose(); void player.dispose(); });
+onBeforeUnmount(() => { window.removeEventListener('beforeunload', guardNavigation); samples.clear(); dispose(); void player.dispose(); });
 </script>
 <template>
   <div class="app-shell">
@@ -71,11 +73,25 @@ onBeforeUnmount(() => { window.removeEventListener('beforeunload', guardNavigati
     </header>
     <main>
       <div class="page-heading">
-        <div><span class="eyebrow">KIT INSPECTOR / 01</span><h1>Meet your kit.</h1><p>Explore every sample, slot, and setting.</p></div><span class="version-label">EDIT & EXPORT<br>PREVIEW RELEASE</span>
+        <div><span class="eyebrow">KIT BUILDER</span><h1>Build your kit.</h1><p>Drop your sounds onto the pads. Make them your own.</p></div><span class="version-label">EDIT & EXPORT<br>PREVIEW RELEASE</span>
       </div>
+      <section class="kit-toolbar">
+        <label>Kit name<input
+          :value="kitName"
+          aria-label="Kit name"
+          maxlength="48"
+          :disabled="loading"
+          @change="changeKitName"
+        ></label><button
+          class="secondary-button"
+          @click="startNewKit"
+        >
+          New kit
+        </button>
+      </section>
       <KitImport
         :loading="loading"
-        :compact="Boolean(kit)"
+        :compact="true"
         @import="replaceKit"
       />
       <p
@@ -97,22 +113,22 @@ onBeforeUnmount(() => { window.removeEventListener('beforeunload', guardNavigati
       >
         <div>
           <strong>{{ dirty ? 'Applied edits ready to export' : 'Original kit · unchanged' }}</strong><p class="muted">
-            Parameter exports verified on SmplTrek. Sample replacement is experimental; unedited slots are preserved.
+            Sample replacement verified on SmplTrek. New-kit defaults and color edits await a device check.
           </p>
         </div>
         <div class="export-actions">
           <button
             class="secondary-button"
-            :disabled="!dirty || loading"
+            :disabled="(!dirty && !sampleBusy) || loading"
             @click="reset"
           >
             Reset all edits
           </button><button
             class="primary-button"
-            :disabled="loading"
+            :disabled="loading || sampleBusy || !summary?.populatedSlots"
             @click="exportKit"
           >
-            Export STK copy
+            Export kit
           </button>
         </div>
       </section>
@@ -125,16 +141,17 @@ onBeforeUnmount(() => { window.removeEventListener('beforeunload', guardNavigati
       </p>
       <section class="kit-panel">
         <header class="section-heading">
-          <div><span class="eyebrow">PAD LAYOUT</span><h2>{{ filename || '15 slots. Endless possibilities.' }}</h2></div><span class="muted">{{ summary ? `${summary.populatedSlots} / 15 samples` : 'SmplTrek layout' }}</span>
+          <div><span class="eyebrow">PAD LAYOUT</span><h2>{{ kitName }}</h2></div><span class="muted">{{ summary ? `${summary.populatedSlots} / 15 samples` : 'SmplTrek layout' }}</span>
         </header>
         <PadGrid
           :kit="kit"
           :selected-slot="selectedSlot"
+          :busy-slots="[...samples.entries].filter(([,entry])=>entry.busy).map(([slot])=>slot)"
           @select="selectSlot"
           @sample="loadSample"
         />
         <footer class="pad-caption">
-          <span>Upper: even slots · Lower: odd slots</span><span>{{ kit ? 'Select a pad to inspect' : 'Open a kit to get started' }}</span>
+          <span>Upper: even slots · Lower: odd slots</span><span>{{ kit ? 'Drop WAVs onto pads to assign' : 'Open a kit to get started' }}</span>
         </footer>
       </section>
       <SlotDetails
@@ -147,23 +164,22 @@ onBeforeUnmount(() => { window.removeEventListener('beforeunload', guardNavigati
       />
       <SampleImport
         v-if="kit && canEditKit(kit)"
-        v-model:start="sampleStart"
-        v-model:end="sampleEnd"
         :slot-number="selectedSlot"
-        :name="sampleName"
-        :duration="sampleSource ? sampleSource.channels[0]!.length / sampleSource.sampleRate : 0"
-        :channels="sampleSource?.channels.length ?? 1"
-        :sample-rate="sampleSource?.sampleRate ?? 48000"
-        :busy="sampleBusy"
-        :prepared="Boolean(preparedSample)"
-        :error="sampleError"
+        :entry="samples.entries.get(selectedSlot)"
         :disabled="loading"
-        @file="loadSample(selectedSlot, $event)"
-        @prepare="sampleImport.prepare"
-        @preview="preparedSample && playBytes(preparedSample)"
-        @stop="stop"
-        @apply="applySample"
-        @cancel="sampleImport.clear"
+        @file="loadSample(selectedSlot,$event)"
+        @trim="(start,end)=>samples.adjust(selectedSlot,start,end)"
+      />
+      <PadEditor
+        v-if="details && kit && canEditKit(kit)"
+        :key="selectedSlot + ':' + details.name"
+        :name="details.sample ? details.name.replace(/\.wav$/i,'') : ''"
+        :populated="Boolean(details.sample)"
+        :color="details.color.deviceNumber"
+        :disabled="loading || Boolean(samples.entries.get(selectedSlot)?.busy)"
+        @rename="editPad('name',$event)"
+        @color="editPad('color',$event)"
+        @clear="editPad('clear')"
       />
       <ParameterEditor
         v-if="kit && canEditKit(kit)"

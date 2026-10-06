@@ -38,12 +38,15 @@ Browser-based Sonicware SmplTrek drum kit creation and editing. Process samples 
 - `writeStk` copies source bytes and patches only level, pan, and FX send. Never reconstruct unknown fields or embedded WAVs for parameter-only edits.
 - Pan editing is temporarily restricted to the observed -53..53 range; this is an app limit, not a verified hardware limit.
 - Keep original imported kit for reset. Agent inspection follows applied edits; WebMCP mutation is not enabled.
-- Ryan verified the unchanged Rock export and parameter edits on-device on 2026-10-06. Sample replacement needs its own hardware validation.
+- Ryan verified the unchanged Rock export and parameter edits on-device on 2026-10-06. Ryan also verified sample replacement on-device on 2026-10-06. Fresh-kit defaults and color writes still need device validation.
 
 ## Sample replacement
 
 - Pure core decodes/encodes WAV and rebuilds only the target ISDT; browser OfflineAudioContext owns rate conversion.
 - Retain both observed outer-size conventions: physical length, or physical length minus the sum of 24 plus trailer length per sample. Refuse unfamiliar conventions.
 - Replacement preserves every other slot/chunk and the target parameter bytes. New sample paths are bounded ASCII. Unknown target markers/trailers are not rewritten.
-- Stage, explicitly trim, convert, preview, then apply. Clear staging on kit/slot/reset changes. Dirty comparison covers complete source bytes, including audio-only changes.
-- WAV input limit 32MiB/60s; output 48kHz16-bit mono/stereo,5.4s/2.7s max. Do not silently trim.
+- Start with an empty kit. WAV assignment automatically converts and applies to the captured pad. Serialize conversion jobs, cancel stale jobs on clear/new/import/reset, and retain original decoded audio up to128MiB for trim adjustment. Dirty comparison covers names and complete source bytes.
+- WAV input limit 32MiB/60s; output 48kHz16-bit mono/stereo,5.4s/2.7s max. Automatically assign 0–2.7 seconds for longer sources with a visible warning and optional trim adjustment, per user request.
+
+- Kit name is the export filename. Sample name changes the embedded path. Clear pad removes its sample and resets its record to observed empty defaults. Keep these operations in pure core modules.
+- Pad color writes stored index0–29 for displayed1–30, pending hardware verification. Photo-derived palette remains approximate.

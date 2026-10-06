@@ -56,3 +56,9 @@ it('detects audio-only replacements and resets the complete kit', async () => {
   state.replaceSlotSample(1,encodePcm16([new Float32Array([0.2,0.3])]),'Sample0.wav');
   expect(state.dirty.value).toBe(true); state.resetEdits(); expect(state.kit.value!.source).toEqual(original); expect(state.dirty.value).toBe(false);
 });
+it('starts a named empty kit, tracks naming and cancels import when starting new', async()=>{
+ const state=useKitInspector();expect(state.kit.value!.slots.every(slot=>!slot.sample)).toBe(true);expect(state.kitName.value).toBe('New Kit');
+ state.renameKit('My Kit');expect(state.dirty.value).toBe(true);state.resetEdits();expect(state.kitName.value).toBe('New Kit');
+ let finish!:(buffer:ArrayBuffer)=>void;const pending=state.importFile(file('old.stk',()=>new Promise(resolve=>{finish=resolve;})));
+ state.newKit();finish(makeKit().buffer as ArrayBuffer);await pending;expect(state.kitName.value).toBe('New Kit');expect(state.kit.value!.slots[0]!.sample).toBeUndefined();
+});

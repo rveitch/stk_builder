@@ -12,3 +12,8 @@ it('downloads exact bytes under a separate sanitized STK filename and releases U
   expect(revoke).not.toHaveBeenCalled(); await vi.runAllTimersAsync(); expect(revoke).toHaveBeenCalledWith('blob:test');
   expect(document.querySelector('a[download]')).toBeNull();
 });
+it('uses the edited kit name as the filename', () => {
+ vi.stubGlobal('URL', { createObjectURL: vi.fn().mockReturnValue('blob:test'), revokeObjectURL: vi.fn() });
+ vi.useFakeTimers();let name='';vi.spyOn(HTMLAnchorElement.prototype,'click').mockImplementation(function(this:HTMLAnchorElement){name=this.download;});
+ downloadKit(new Uint8Array([1]),'Builder Test',true,true);expect(name).toBe('Builder Test.stk');
+});
