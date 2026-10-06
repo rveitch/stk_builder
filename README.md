@@ -83,3 +83,33 @@ Supports mono/stereo integer PCM 8/16/24/32-bit and IEEE float 32/64-bit WAV at 
 The pure core handles WAV parsing/encoding and STK rebuilding. Browser resampling uses OfflineAudioContext. Both observed outer-size conventions are retained. Unrecognized size conventions, target sample markers, or nonstandard trailers are rejected rather than guessed. New samples use sanitized embedded paths; no source WAV is written to disk.
 
 Ryan verified sample replacement on-device on 2026-10-06. Fresh-kit defaults and color writes remain provisional until separately tested. Original decoded WAVs are cached for trim adjustment up to 128MiB; older originals are released when needed, without removing assigned samples. Reselect an evicted original to adjust its trim.
+
+## Command-line kit conversion
+
+Use Node 24 and `npm install`, then run `npm run cli -- --help`.
+
+Build a kit from the WAV files directly inside a folder:
+
+```sh
+npm run cli -- --input '/path/to/Kit 01' --output '/path/to/new-output-folder' --name My_Kit
+```
+
+Convert all 60 prepared Loud Foundry Dark Cyberpunk drum kits:
+
+```sh
+npm run cli -- --loud-foundry --input '/path/to/Loud Foundry' --output '/path/to/new-output-folder'
+```
+
+The batch command reads `LF - Dark Cyberpunk Construction Kits Vol. 1` through `Vol. 3`, each containing `Kits/Kit 01` through `Kit 20`. It uses these prepared drum folders, not stems, loops, tonal one-shots, or duplicate source folders. Outputs are grouped by volume with names such as `LFDCP2_Kit_03.stk`.
+
+The CLI uses the same STK creation, sample conversion, and default pad colors as the editor. It supports 48 kHz mono/stereo PCM or floating-point WAV input, converts to 16-bit PCM, and keeps the first 2.7 seconds of longer samples. Other sample rates are rejected explicitly. Source files are never modified. The output folder must not exist; files are created exclusively and read back for verification. A failed kit produces an error in the report and a nonzero exit code; successfully generated kits remain available.
+
+Automatic assignments reserve the Rock template's primary slots before placing extras. Numbered `Hi_Hat_01`/`Hi_Hat_02` use open/closed slots respectively; a named `Open_Hat` takes priority over `Hi_Hat_01`. Alternate claps and extra percussion use suitable spare slots. Every input sample is retained once; more than 15 samples causes an error rather than silent omission. Review `Conversion Report.md` for all assignments and trimming. `manifest.json` also records source/output hashes, duration, color, and assignment reasons for automation.
+
+Fresh-kit defaults and pad-color writes still require device validation. This tool does not supply or license any commercial samples.
+
+## Hosted app
+
+[Open STK Builder](https://rveitch.github.io/stk_builder/).
+
+GitHub Pages deploys `main` through `.github/workflows/pages.yml`. Tests, ESLint, type checking, and the Vite production build must pass before deployment. The build uses `VITE_BASE_PATH=/stk_builder/`. Pull requests run the checks without deploying. Repository Settings → Pages must use GitHub Actions as its source. Only the static app is published; user samples and generated kits remain local.

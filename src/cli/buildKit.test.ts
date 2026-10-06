@@ -1,0 +1,37 @@
+import { afterEach, expect, it } from 'vitest';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { buildFolder, saveKit } from './buildKit';
+import { encodePcm16 } from '../core/sampleAudio';
+import { readStk } from '../core/readStk';
+const folders:string[]=[];
+afterEach(async()=>{for(const folder of folders) await rm(folder,{recursive:true,force:true}); folders.length=0;});
+it('writes a real kit, retains audio and refuses overwrite',async()=>{
+  const folder=await mkdtemp(join(tmpdir(),'stk-cli-'));folders.push(folder);
+  const wav=encodePcm16([new Float32Array([0,0.5,-0.5,0])]);
+  await writeFile(join(folder,'Kick.wav'),wav);
+  const result=await buildFolder(folder,'Test Kit');
+  const output=join(folder,'Test Kit.stk');await saveKit(output,result.bytes);
+  const kit=readStk(await readFile(output));
+  expect(kit.diagnostics).toEqual([]);
+  expect(kit.slots[0]?.sample?.info.sampleRate).toBe(48000);
+  expect(kit.slots[0]?.sample?.info.durationSeconds).toBe(4/48000);
+  expect(kit.slots[0]?.parameters.colorCode).toBe(22);
+  expect(result.samples).toHaveLength(1);
+  await expect(saveKit(output,result.bytes)).rejects.toThrow();
+  expect(await readFile(output)).toEqual(Buffer.from(result.bytes));
+});
+it('reports stereo trimming and refuses unsupported sample rates',async()=>{
+  const folder=await mkdtemp(join(tmpdir(),'stk-cli-'));folders.push(folder);
+  const wav=encodePcm16([new Float32Array(129600),new Float32Array(129600)]);
+  const longer=new Uint8Array(wav.length+48000*4);longer.set(wav);
+  const view=new DataView(longer.buffer);view.setUint32(4,longer.length-8,true);view.setUint32(40,longer.length-44,true);
+  await writeFile(join(folder,'Crash.wav'),longer);
+  const result=await buildFolder(folder,'Long');
+  expect(result.samples[0]?.trimmed).toBe(true);
+  expect(result.samples[0]?.outputSeconds).toBe(2.7);
+  view.setUint32(24,44100,true);view.setUint32(28,44100*4,true);
+  await writeFile(join(folder,'Crash.wav'),longer);
+  await expect(buildFolder(folder,'Wrong rate')).rejects.toThrow(/48/);
+});
