@@ -1,3 +1,4 @@
+import { createKitTools, type KitAgentContext } from './kitTools';
 import { createInspectionTools, type InspectionTool } from './inspectionTools';
 import type { Kit } from '../core/types';
 // Current WebMCP draft: document.modelContext, async registration and signal cleanup.
@@ -8,9 +9,10 @@ export function getWebMcpHost(): WebMcpHost | null {
   const host = (document as Document & { modelContext?: WebMcpHost }).modelContext;
   return host && typeof host.registerTool === 'function' ? host : null;
 }
-export function registerInspectionTools(host: WebMcpHost, getKit: () => Kit | null) {
+export function registerInspectionTools(host: WebMcpHost, getKit: () => Kit | null, context?: KitAgentContext) {
   const controller = new AbortController();
   const tools = createInspectionTools(() => { if (controller.signal.aborted) throw new Error('Agent assistance is disabled.'); return getKit(); });
+  if (context) tools.push(...createKitTools(context, controller.signal));
   async function register() {
     try {
       for (const tool of tools) { if (controller.signal.aborted) break; await host.registerTool(tool, { signal: controller.signal }); }

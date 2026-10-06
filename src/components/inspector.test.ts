@@ -31,7 +31,8 @@ it('imports dropped files through the same public file event', async () => {
 });
 it('keeps agent access off when the browser does not support WebMCP', async () => {
   const { default: AgentAccess } = await import('./AgentAccess.vue');
-  const wrapper = mount(AgentAccess, { props: { kit: readStk(makeKit()) } });
+  const kit=readStk(makeKit());
+  const wrapper = mount(AgentAccess, { props: { kit, samples:[], context:{getState:()=>({kit,name:'Test',revision:0,busy:false}),listSamples:()=>[],readSample:async()=>{throw new Error('No samples');},commit:()=>{}} } });
   await wrapper.find('button').trigger('click');
   expect(wrapper.text()).toContain('unavailable');
   expect(wrapper.find('button').attributes('aria-pressed')).toBe('false');

@@ -1,3 +1,4 @@
+import type { Kit } from '../core/types';
 import { validateName } from '../core/kitEditing';
 import { computed, shallowReactive } from 'vue';
 import { decodeWav, maxWavImportBytes, type PcmAudio } from '../core/sampleAudio';
@@ -7,6 +8,14 @@ export interface PadSampleEntry { name:string; source:PcmAudio|null; duration:nu
 export function usePadSamples(apply:(slot:number,bytes:Uint8Array,name:string)=>void,convert:typeof convertSample=convertSample){
  const entries=shallowReactive(new Map<number,PadSampleEntry>());const tokens=new Map<number,number>();let epoch=0;let queue=Promise.resolve();
  const busy=computed(()=>[...entries.values()].some(entry=>entry.busy));
+ function reconcile(previous:Kit,next:Kit){
+  for(const slot of entries.keys()){
+   const before=previous.slots[slot-1];const after=next.slots[slot-1];
+   const a=before?.sample?.bytes;const b=after?.sample?.bytes;
+   if(!a||!b||a.length!==b.length||a.some((byte,index)=>byte!==b[index]))cancel(slot);
+   else if(before?.path!==after?.path)rename(slot,after!.path.split('/').at(-1)!);
+  }
+ }
  function rename(slot:number,name:string){const entry=entries.get(slot);if(entry)entries.set(slot,{...entry,name:validateName(name)+'.wav'});}
  function cancel(slot:number){tokens.set(slot,(tokens.get(slot)??0)+1);entries.delete(slot);}
  function clear(){epoch+=1;tokens.clear();entries.clear();}
@@ -38,5 +47,5 @@ export function usePadSamples(apply:(slot:number,bytes:Uint8Array,name:string)=>
    apply(slot,bytes,entry.name);entries.set(slot,{...entry,start,end,trimmed:start>0||end<entry.duration,busy:false,error:''});
   });
  }
- return {entries,busy,assign,adjust,rename,cancel,clear};
+ return {entries,busy,assign,adjust,rename,reconcile,cancel,clear};
 }

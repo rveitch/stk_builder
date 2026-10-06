@@ -39,3 +39,5 @@
 @media(max-width:899px){.selected-pad-editor{grid-template-columns:1fr;padding:18px;gap:18px}.selected-pad-editor>.sample-import,.selected-pad-editor>.pad-editor,.selected-pad-editor>.parameter-editor{grid-column:1;grid-row:auto}.selected-pad-editor .parameter-grid{grid-template-columns:repeat(3,1fr)}}
 
 main>.kit-toolbar{margin-top:24px}
+
+.agent-library-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px}.agent-library-list{font-size:12px;color:#b9c7bc;margin-top:12px}.agent-library-list ul{max-height:160px;overflow:auto;padding-left:20px}.agent-library-list summary{cursor:pointer}

@@ -8,7 +8,7 @@ A local browser workspace for inspecting and editing Sonicware SmplTrek drum kit
 - Preserve empty slots, embedded WAVs, and unknown metadata.
 - Inspect sample paths, audio properties, level, pan, FX send, and raw choke codes.
 - Preview embedded PCM samples at reduced volume, without emulating hardware processing.
-- Optionally expose three read-only WebMCP tools to a connected agent.
+- Optionally let a connected WebMCP agent inspect and build kits from user-selected WAVs.
 
 Edit level, pan, and FX send, then export an STK copy while preserving audio and unknown metadata. WAV replacement and conversion are available. The app starts with an empty kit and supports clearing pads, kit/sample names, and 30 pad colors. A command-line interface remains planned. Parameter exports and sample replacement have been verified on the SmplTrek; fresh-kit defaults and color writes await a device check.
 
@@ -44,9 +44,13 @@ The device manual limits sample playback to 5.4 seconds mono or 2.7 seconds ster
 
 ## Optional WebMCP
 
-Enable agent access in the app to register `getKitSummary`, `getSlotDetails` (slot 1-15), and `getValidationFindings`. Tools use the same core as the UI and see the current imported kit. They share metadata, including embedded sample paths, with the connected agent. They return no audio and cannot change the kit or access other files. Disabling access unregisters tools and revokes existing handlers. Access is off on each page load.
+Select **Add WAVs for agent**, then **Enable agent access**. A connected agent can inspect the kit, create/rename it, assign library WAVs to specific slots, clear pads, and edit sample names, colors, level, pan and FX send. Changes appear immediately in the editor; **Reset all edits** restores the imported or initial kit. Export with the editor's **Export kit** button.
 
-This experimental adapter targets the current `document.modelContext.registerTool(tool, { signal })` API, verified against the [WebMCP draft](https://github.com/webmachinelearning/webmcp) on 2026-10-06. Older previews using `navigator.modelContext` are not supported. Unsupported browsers retain the complete normal inspector. Actual read-only tool calls were verified in the Codex in-app browser.
+The three inspection tools are joined by `getKitState`, `listAvailableSamples`, `createKit`, `renameKit`, `editPad`, `clearPad`, and `assignSample`. Read `getKitState` first; every write requires its current `expectedRevision`. Each successful write returns the new revision. Stale requests are rejected after manual edits or kit changes. Disable access to unregister tools and revoke captured and unfinished calls.
+
+The sample library holds at most 64 user-selected WAVs totaling 128MiB (32MiB each). Agents receive sample IDs, names and metadata, never audio bytes or filesystem access. Assignment uses the same WAV decoder, converter, and STK writer as manual edits, with explicit slot numbers and optional trim times. Default assignment uses 0–2.7 seconds and reports the actual trim. File names and paths are treated as data, never instructions. Access is off on page load; refresh clears the library and editor. WebMCP supplies tools to a connected agent; it does not include an AI model or chat service.
+
+This experimental adapter targets the current `document.modelContext.registerTool(tool, { signal })` API, verified against the [WebMCP draft](https://github.com/webmachinelearning/webmcp) on 2026-10-06. Older previews using `navigator.modelContext` are not supported. Unsupported browsers retain the complete normal inspector. Inspection, kit creation, explicit slot assignment, pad edits and disabling access were verified through real WebMCP calls in the Codex in-app browser on 2026-10-06.
 
 ## Architecture
 
@@ -54,7 +58,7 @@ This experimental adapter targets the current `document.modelContext.registerToo
 - `src/audio`: browser audio lifecycle.
 - `src/composables`: Vue import and selection state.
 - `src/presentation` and `src/components`: palette, physical pad layout, and UI.
-- `src/agents`: shared read-only handlers and the optional WebMCP registration adapter.
+- `src/agents`: shared inspection/editing handlers and the optional WebMCP registration adapter.
 
 The core uses byte arrays rather than browser files or Node filesystem APIs so a future CLI can reuse it. Browser and CLI audio conversion will need separate environment adapters around shared format/kit rules.
 
@@ -64,7 +68,7 @@ MIT licensed. Independent project, not affiliated with Sonicware. Third-party ki
 
 Apply level (0–127), signed pan (temporarily L53–R53), and FX send (0–127), then choose **Export kit**. Apply settings before selecting another pad. Reset all edits restores the imported kit. Exporting does not clear the edited status, which describes differences from the import. Preview still plays original audio without device processing.
 
-Unchanged exports are byte-identical. Edited exports patch only requested parameter bytes and retain all audio and unknown data. Original files are never overwritten by the app. Unrecognized kit settings versions support unchanged export only. WebMCP remains read-only and reports applied edits. The shared `writeStk` function can also serve a future CLI.
+Unchanged exports are byte-identical. Edited exports patch only requested parameter bytes and retain all audio and unknown data. Original files are never overwritten by the app. Unrecognized kit settings versions support unchanged export only. WebMCP editing is optional and reports applied edits. The shared `writeStk` function can also serve a future CLI.
 
 Ryan confirmed both the unchanged Rock export and edited slot 6 settings (level 60, pan R20, FX send 30) load and work on the SmplTrek on 2026-10-06. This confirms parameter editing for the tested kit, not all STK variants.
 

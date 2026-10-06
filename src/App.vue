@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import type { KitAgentContext } from './agents/kitTools';
+import { useAgentSampleLibrary } from './composables/useAgentSampleLibrary';
 import SampleImport from './components/SampleImport.vue';
 import { usePadSamples } from './composables/usePadSamples';
 import PadEditor from './components/PadEditor.vue';
@@ -19,6 +21,16 @@ function stop() { previewGeneration += 1; player.stop(); playing.value = false; 
 const { session, kitName, renameKit, newKit, modifyPad, replaceSlotSample, dirty, editSlot, resetEdits, kit, selectedSlot, loading, error, importFile, selectSlot, dispose } = useKitInspector(stop);
 const samples=usePadSamples((slot,bytes,name)=>{ replaceSlotSample(slot,bytes,name); exportStatus.value='Sample assigned.'; });
 const {busy:sampleBusy}=samples;
+const library=useAgentSampleLibrary();const agentBusy=ref(false);const agentRevision=ref(0);
+watch([kit,kitName,session],()=>{agentRevision.value+=1;},{flush:'sync'});
+const agentContext:KitAgentContext={
+ getState(){if(!kit.value)throw new Error('No kit is open.');return {kit:kit.value,name:kitName.value,revision:agentRevision.value,busy:loading.value||sampleBusy.value};},
+ listSamples:library.list,readSample:library.read,
+ setProcessing(value){agentBusy.value=value;},
+ commit(updated,name){stop();if(kit.value)samples.reconcile(kit.value,updated);kit.value=updated;kitName.value=name;exportStatus.value='Agent changes applied. Review your kit or reset all edits.';},
+};
+function addAgentSamples(files:File[]){try{library.add(files);editError.value='';}catch(cause){editError.value=(cause as Error).message;}}
+
 watch(session,()=>samples.clear(),{flush:'sync'});
 function loadSample(slot:number,file:File){
  if(!kit.value||loading.value||!canEditKit(kit.value))return;
@@ -40,7 +52,7 @@ async function replaceKit(file: File) {
   editError.value = ''; exportStatus.value = ''; await importFile(file);
 }
 function exportKit() {
-  if (!kit.value || loading.value || sampleBusy.value || !kit.value.slots.some(slot=>slot.sample)) return;
+  if (!kit.value || loading.value || sampleBusy.value || agentBusy.value || !kit.value.slots.some(slot=>slot.sample)) return;
   try { downloadKit(writeStk(kit.value), kitName.value, dirty.value, true); exportStatus.value = 'Download requested. Your imported file is unchanged.'; editError.value = ''; }
   catch (cause) { editError.value = cause instanceof Error ? cause.message : 'Unable to export kit.'; }
 }
@@ -122,7 +134,7 @@ onBeforeUnmount(() => { window.removeEventListener('beforeunload', guardNavigati
             Reset all edits
           </button><button
             class="primary-button"
-            :disabled="loading || sampleBusy || !summary?.populatedSlots"
+            :disabled="loading || sampleBusy || agentBusy || !summary?.populatedSlots"
             @click="exportKit"
           >
             Export kit
@@ -236,7 +248,20 @@ onBeforeUnmount(() => { window.removeEventListener('beforeunload', guardNavigati
           <summary>File details & undecoded settings</summary><p>Slope, reverse, kit level, and LoFi are preserved as raw data. Their stored fields are not yet verified.</p><p>Chunk listing shows up to 100 entries.</p><pre v-if="rawOpen">{{ JSON.stringify(raw, null, 2) }}</pre>
         </details>
       </template>
-      <AgentAccess :kit="kit" />
+      <p
+        v-if="agentBusy"
+        class="muted"
+        role="status"
+      >
+        Agent is converting a sample…
+      </p>
+      <AgentAccess
+        :kit="kit"
+        :context="agentContext"
+        :samples="library.list()"
+        @add-samples="addAgentSamples"
+        @clear-samples="library.clear"
+      />
     </main>
     <footer class="app-footer">
       <span>STK BUILDER <span class="muted">/ Independent tool for Sonicware SmplTrek</span></span><span>Made for your sample collection.</span>

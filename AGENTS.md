@@ -37,7 +37,7 @@ Browser-based Sonicware SmplTrek drum kit creation and editing. Process samples 
 
 - `writeStk` copies source bytes and patches only level, pan, and FX send. Never reconstruct unknown fields or embedded WAVs for parameter-only edits.
 - Pan editing is temporarily restricted to the observed -53..53 range; this is an app limit, not a verified hardware limit.
-- Keep original imported kit for reset. Agent inspection follows applied edits; WebMCP mutation is not enabled.
+- Keep original imported kit for reset. Agent tools follow applied edits. WebMCP editing is opt-in and uses the same core operations; every write requires a current revision and checks revocation before committing.
 - Ryan verified the unchanged Rock export and parameter edits on-device on 2026-10-06. Ryan also verified sample replacement on-device on 2026-10-06. Fresh-kit defaults and color writes still need device validation.
 
 ## Sample replacement
@@ -50,3 +50,5 @@ Browser-based Sonicware SmplTrek drum kit creation and editing. Process samples 
 
 - Kit name is the export filename. Sample name changes the embedded path. Clear pad removes its sample and resets its record to observed empty defaults. Keep these operations in pure core modules.
 - Pad color writes stored index0–29 for displayed1–30, pending hardware verification. Photo-derived palette remains approximate.
+
+- Agent sample assignment accepts only IDs from the user-selected WAV library (64 files /128MiB maximum). No arbitrary paths, URLs, filesystem access or audio bytes in tool responses. Reject stale writes after manual edits/import/reset and revoke in-flight writes on disable.
