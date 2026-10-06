@@ -5,3 +5,4 @@ export interface Sample { bytes: Uint8Array; trailingBytes: Uint8Array; info: Wa
 export interface Slot { index: number; path: string; rawRecord: Uint8Array; parameters: { level: number; pan: number; fxSend: number; chokeCode: number; pitchCents: number; colorCode: number }; sample?: Sample }
 export interface Kit { source: Uint8Array; slots: Slot[]; chunks: Chunk[]; header: { size: number; count: number }; diagnostics: Diagnostic[] }
 export const maxImportBytes = 64 * 1024 * 1024;
+export const maxChunkCount = 4096;

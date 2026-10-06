@@ -35,3 +35,11 @@ describe('STK input boundaries and slot assignment', () => {
     expect(kit.source).toEqual(bytes);
   });
 });
+it('rejects excessive small chunks before expanding them into UI metadata', () => {
+  const original = makeKit(); const bytes = new Uint8Array(original.length + 5000 * 16); bytes.set(original);
+  const view = new DataView(bytes.buffer);
+  for (let offset = original.length; offset < bytes.length; offset += 16) {
+    bytes.set(new TextEncoder().encode('JUNK'), offset); view.setUint32(offset + 4, 16, true);
+  }
+  expect(() => readStk(bytes)).toThrow(/chunk limit/i);
+});

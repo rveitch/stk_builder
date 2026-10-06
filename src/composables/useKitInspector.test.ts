@@ -20,3 +20,13 @@ it('invalidates pending reads on dispose', async () => {
   const pending = state.importFile(file('a.stk', () => new Promise(resolve => { finish = resolve; })));
   state.dispose(); finish(makeKit().buffer as ArrayBuffer); await pending; expect(state.kit.value).toBeNull();
 });
+it('stops playback started while a replacement kit is still reading', async () => {
+  let playing = false;
+  const state = useKitInspector(() => { playing = false; });
+  await state.importFile(file('first.stk', async () => makeKit().buffer as ArrayBuffer));
+  let finish!: (value: ArrayBuffer) => void;
+  const pending = state.importFile(file('next.stk', () => new Promise(resolve => { finish = resolve; })));
+  playing = true; // User previews the old kit after the replacement import starts.
+  finish(makeKit([2]).buffer as ArrayBuffer); await pending;
+  expect(state.filename.value).toBe('next.stk'); expect(playing).toBe(false);
+});

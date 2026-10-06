@@ -100,3 +100,16 @@
 ## Execution recommendation
 
 Use native execution in this chat: the tasks share a small set of types and follow a sequential dependency chain. One final independent review can check the completed implementation. Subagent-driven execution is an alternative if the user prefers separate implementer/reviewer passes per task.
+
+## Completion record
+
+Implemented all five milestone tasks on `feat/stk-inspector`. The detailed checkboxes above retain the original proposed sequence; the verified outcome is recorded here.
+
+- Core, shared projections, Vue inspector, sample preview, and opt-in WebMCP are implemented.
+- PO20, Rock, and LINN Drum parsed with 9/15/15 populated slots; device-correlated Rock settings matched and input hashes stayed unchanged.
+- File picker, replacement errors, empty pads, playback controls, and desktop/narrow layouts were exercised in the browser. Drag/drop has component coverage. Playback was functionally verified, not assessed by listening.
+- Native WebMCP calls succeeded in the Codex in-app browser, including updated metadata after kit replacement and tool removal after disabling access.
+- Final validation: 50 tests passed; typecheck, ESLint, production build, dependency audit, diff checks, and focused IDE error checks passed.
+- Independent review found two issues, both fixed with regression coverage: playback started during a pending import is stopped at commit, and STK/WAV chunk counts are bounded. UI notes and chunk listings are capped at 100, and raw metadata is rendered only when expanded.
+- Execution adjustments: Vitest 5 replaced the reference version after dependency audit findings. The current WebMCP contract requires async registration with AbortSignal cleanup, exposed as a ready/dispose handle. Parser resource limits include 4,096 chunks per container.
+- Export, editing, conversion, and a CLI remain outside this inspector milestone. Work stays local; no deployment or push.

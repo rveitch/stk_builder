@@ -19,3 +19,8 @@ it('stops an active source and releases context on dispose', async () => {
   const pending = player.play(new Uint8Array(48)); await Promise.resolve(); h.finish(); await pending;
   expect(h.start).toHaveBeenCalledOnce(); await player.dispose(); expect(h.stop).toHaveBeenCalledOnce(); expect(h.context.close).toHaveBeenCalledOnce();
 });
+it('reports resume rejection instead of decoding or playing', async () => {
+  const h = audioHarness(); h.context.state = 'suspended'; h.context.resume.mockRejectedValueOnce(new Error('Audio blocked'));
+  const player = createPreviewPlayer(() => h.context as unknown as AudioContext);
+  await expect(player.play(new Uint8Array(48))).rejects.toThrow('Audio blocked'); expect(h.context.decodeAudioData).not.toHaveBeenCalled(); await player.dispose();
+});

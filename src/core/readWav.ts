@@ -1,10 +1,11 @@
 import { FormatError, readTag, readUint32, requireBytes } from './binary';
-import type { Chunk, WavInfo } from './types';
+import { maxChunkCount, type Chunk, type WavInfo } from './types';
 export function readWav(bytes: Uint8Array): WavInfo {
   requireBytes(bytes, 0, 12);
   if (readTag(bytes, 0) !== 'RIFF' || readTag(bytes, 8) !== 'WAVE' || readUint32(bytes, 4) + 8 !== bytes.length) throw new FormatError('WAV_HEADER', 0, 'Invalid RIFF/WAVE boundary');
   const chunks: Chunk[] = []; let fmt: WavInfo | undefined; let dataSize: number | undefined; let blockAlign = 0; let byteRate = 0;
   for (let offset = 12; offset < bytes.length;) {
+    if (chunks.length >= maxChunkCount) throw new FormatError('CHUNK_LIMIT', offset, 'WAV chunk limit exceeded');
     requireBytes(bytes, offset, 8); const tag = readTag(bytes, offset); const size = readUint32(bytes, offset + 4);
     requireBytes(bytes, offset + 8, size + size % 2); chunks.push({ tag, offset, size });
     if (tag === 'fmt ') {

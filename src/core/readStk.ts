@@ -1,6 +1,6 @@
 import { FormatError, readTag, readUint32, requireBytes } from './binary';
 import { readWav } from './readWav';
-import { maxImportBytes, type Kit, type Slot } from './types';
+import { maxChunkCount, maxImportBytes, type Kit, type Slot } from './types';
 export function readStk(bytes: Uint8Array): Kit {
   if (bytes.length > maxImportBytes) throw new FormatError('SIZE_LIMIT', 0, 'Maximum import size is 64 MiB');
   requireBytes(bytes, 0, 32);
@@ -22,6 +22,7 @@ export function readStk(bytes: Uint8Array): Kit {
     kit.slots.push(slot);
   }
   for (let offset = 16 + kitSize; offset < source.length;) {
+    if (kit.chunks.length >= maxChunkCount) throw new FormatError('CHUNK_LIMIT', offset, 'STK chunk limit exceeded');
     requireBytes(source, offset, 16); const tag = readTag(source, offset); const size = readUint32(source, offset + 4);
     if (size < 16) throw new FormatError('CHUNK_SIZE', offset, 'Chunk length must include its header');
     requireBytes(source, offset, size); kit.chunks.push({ tag, offset, size });

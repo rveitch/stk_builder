@@ -13,7 +13,8 @@ function stop() { previewGeneration += 1; player.stop(); playing.value = false; 
 const { kit, filename, selectedSlot, loading, error, importFile, selectSlot, dispose } = useKitInspector(stop);
 const summary = computed(() => kit.value ? getKitSummary(kit.value) : null);
 const details = computed(() => kit.value ? getSlotDetails(kit.value, selectedSlot.value) : null);
-const raw = computed(() => kit.value ? { header: kit.value.header, slotRecordHex: Array.from(kit.value.slots[selectedSlot.value - 1]!.rawRecord, byte => byte.toString(16).padStart(2, '0')).join(' '), chunks: kit.value.chunks } : null);
+const rawOpen = ref(false);
+const raw = computed(() => kit.value ? { header: kit.value.header, slotRecordHex: Array.from(kit.value.slots[selectedSlot.value - 1]!.rawRecord, byte => byte.toString(16).padStart(2, '0')).join(' '), chunkCount: kit.value.chunks.length, chunks: kit.value.chunks.slice(0, 100) } : null);
 async function play() {
   const sample = kit.value?.slots[selectedSlot.value - 1]?.sample; if (!sample?.info.previewSupported) return;
   stop(); const current = previewGeneration; previewBusy.value = true;
@@ -88,15 +89,20 @@ onBeforeUnmount(() => { dispose(); void player.dispose(); });
         >
           <h3>Import notes</h3><ul>
             <li
-              v-for="(finding, index) in kit.diagnostics"
+              v-for="(finding, index) in kit.diagnostics.slice(0, 100)"
               :key="index"
             >
               {{ finding.slot ? `Slot ${finding.slot}: ` : '' }}{{ finding.message }}
             </li>
-          </ul>
+          </ul><p v-if="kit.diagnostics.length > 100">
+            Showing the first 100 of {{ kit.diagnostics.length }} notes.
+          </p>
         </section>
-        <details class="raw-details">
-          <summary>File details & undecoded settings</summary><p>Slope, reverse, kit level, and LoFi are preserved as raw data. Their stored fields are not yet verified.</p><pre>{{ JSON.stringify(raw, null, 2) }}</pre>
+        <details
+          class="raw-details"
+          @toggle="rawOpen = ($event.target as HTMLDetailsElement).open"
+        >
+          <summary>File details & undecoded settings</summary><p>Slope, reverse, kit level, and LoFi are preserved as raw data. Their stored fields are not yet verified.</p><p>Chunk listing shows up to 100 entries.</p><pre v-if="rawOpen">{{ JSON.stringify(raw, null, 2) }}</pre>
         </details>
       </template>
       <AgentAccess :kit="kit" />

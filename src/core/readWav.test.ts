@@ -17,3 +17,9 @@ it('rejects missing fmt and missing data', () => {
     expect(() => readWav(bytes)).toThrow();
   }
 });
+it('rejects excessive zero-length ancillary chunks', () => {
+  const original = makeWav(); const bytes = new Uint8Array(original.length + 5000 * 8); bytes.set(original);
+  const view = new DataView(bytes.buffer); view.setUint32(4, bytes.length - 8, true);
+  for (let offset = original.length; offset < bytes.length; offset += 8) bytes.set(new TextEncoder().encode('JUNK'), offset);
+  expect(() => readWav(bytes)).toThrow(/chunk limit/i);
+});

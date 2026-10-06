@@ -32,7 +32,7 @@ Tests use generated synthetic audio. Factory samples, user kits, and reference p
 
 ## Privacy and file limits
 
-Files are processed in browser memory, without uploads or persistent storage. The initial app import limit is 64 MiB. Reloading the page clears the kit. No remote fonts, analytics, or audio services are used.
+Files are processed in browser memory, without uploads or persistent storage. The initial app import limit is 64 MiB, with at most 4,096 chunks per STK or embedded WAV. These are application resource limits, not device format limits. The UI shows up to 100 import notes and chunk entries. Reloading the page clears the kit. No remote fonts, analytics, or audio services are used.
 
 ## Format confidence
 

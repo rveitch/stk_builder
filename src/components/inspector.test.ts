@@ -21,3 +21,18 @@ it('renders filenames as text and distinguishes unsupported audio', () => {
   const wrapper = mount(SlotDetails, { props: { details: getSlotDetails(kit, 1), playing: false, busy: false } });
   expect(wrapper.find('img').exists()).toBe(false); expect(wrapper.text()).toContain('Preview unavailable');
 });
+
+it('imports dropped files through the same public file event', async () => {
+  const { default: KitImport } = await import('./KitImport.vue');
+  const wrapper = mount(KitImport, { props: { loading: false, compact: false } });
+  const file = new File([new Uint8Array([1,2,3])], 'drop.stk');
+  await wrapper.find('section').trigger('drop', { dataTransfer: { files: [file] } });
+  expect(wrapper.emitted('import')?.[0]?.[0]).toBe(file);
+});
+it('keeps agent access off when the browser does not support WebMCP', async () => {
+  const { default: AgentAccess } = await import('./AgentAccess.vue');
+  const wrapper = mount(AgentAccess, { props: { kit: readStk(makeKit()) } });
+  await wrapper.find('button').trigger('click');
+  expect(wrapper.text()).toContain('unavailable');
+  expect(wrapper.find('button').attributes('aria-pressed')).toBe('false');
+});
