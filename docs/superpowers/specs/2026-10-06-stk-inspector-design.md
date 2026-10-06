@@ -20,6 +20,10 @@ Use Vue 3 Composition API, TypeScript, Vite, Vitest, and ESLint, following the l
 
 ## Structure and data contracts
 
+The user approved optional agent assistance. Reusable business logic is a requirement: Vue, a future CLI, and WebMCP must call the same core operations. Keep the core free of Vue, DOM, Web Audio, Node filesystem, and WebMCP dependencies. Operate on bytes and plain typed records. Environment adapters own file access, decoding/resampling, and playback. A CLI and conversion remain later milestones.
+
+Include an opt-in, experimental WebMCP inspection adapter in this milestone with three read-only tools: kit summary, slot details, and validation findings. Register only when the user enables assistance and the browser provides the required API; unregister on disable/unmount. Tools read the current kit on each invocation and return bounded JSON without raw audio or filesystem access. Explain that the connected agent can receive tool results. The normal editor works without WebMCP. Native host integration is only claimed if tested with an actual supporting host; mock tests alone verify adapter behavior, not host interoperability.
+
 - `src/stk`: pure binary parsing and typed kit/slot/sample records, independent of Vue and browser audio.
 - `src/audio`: preview decoding and playback lifecycle; errors do not invalidate a successfully parsed kit.
 - `src/composables`: import state, selected slot, loading/error state, and preview coordination.
