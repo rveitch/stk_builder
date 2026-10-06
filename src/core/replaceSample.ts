@@ -4,6 +4,8 @@ import { canEditKit } from './writeStk';
 import { readUint32 } from './binary';
 import { readWav } from './readWav';
 import { sampleDurationLimit } from './sampleAudio';
+// Device color numbers by slot 1–15, from the user's preferred pad layout.
+const defaultAssignedPadColors = [23, 21, 30, 25, 27, 1, 15, 2, 13, 3, 28, 4, 9, 10, 8] as const;
 /** Rebuild the selected ISDT chunk while copying all other bytes verbatim. */
 export function replaceSample(kit: Kit, slotNumber: number, wav: Uint8Array, filename: string): Uint8Array<ArrayBuffer> {
   if (!Number.isInteger(slotNumber) || slotNumber < 1 || slotNumber > 15) throw new Error('Slot must be an integer from 1 to 15.');
@@ -27,5 +29,6 @@ export function replaceSample(kit: Kit, slotNumber: number, wav: Uint8Array, fil
   const basename = (filename.split(/[\\/]/).at(-1) || 'Sample').replace(/\.wav$/i,'').replace(/[^a-zA-Z0-9 _-]/g,'_').slice(0,48).trim() || 'Sample';
   const path = new TextEncoder().encode(`SmplTrek/Pool/Audio/${basename}.wav`); const record = 32+index*280;
   output.fill(0,record,record+256); output.set(path,record);
+  if (!oldChunk) output[record+274] = defaultAssignedPadColors[index]! - 1;
   return output;
 }

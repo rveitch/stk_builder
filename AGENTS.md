@@ -52,3 +52,5 @@ Browser-based Sonicware SmplTrek drum kit creation and editing. Process samples 
 - Pad color writes stored index0–29 for displayed1–30, pending hardware verification. Photo-derived palette remains approximate.
 
 - Agent sample assignment accepts only IDs from the user-selected WAV library (64 files /128MiB maximum). No arbitrary paths, URLs, filesystem access or audio bytes in tool responses. Reject stale writes after manual edits/import/reset and revoke in-flight writes on disable.
+
+- First sample assignment to an empty pad applies preferred device colors by slot1–15:23,21,30,25,27,1,15,2,13,3,28,4,9,10,8. Replacing populated pads preserves their existing color. Shared core behavior applies to UI and WebMCP.

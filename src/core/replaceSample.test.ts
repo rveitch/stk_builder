@@ -23,3 +23,11 @@ it('refuses invalid slot, unknown size convention and non-device WAV', () => {
   new DataView(kit.source.buffer).setUint32(4,1,true); expect(() => replaceSample(kit,1,wav,'a.wav')).toThrow(/size/);
   const wrong=wav.slice(); new DataView(wrong.buffer).setUint32(24,44100,true); expect(() => replaceSample(readStk(makeKit()),1,wrong,'a.wav')).toThrow();
 });
+it.each([23,21,30,25,27,1,15,2,13,3,28,4,9,10,8].map((color,index)=>[index+1,color]))('assigns the photographed default to empty slot %s (color %s)', (slot,color) => {
+ const kit=readStk(makeKit([]));const before=kit.source.slice();const wav=encodePcm16([new Float32Array([0.1])]);
+ const next=readStk(replaceSample(kit,slot!,wav,'sample.wav'));
+ expect(next.slots[slot!-1]!.parameters.colorCode).toBe(color!-1);
+ expect(kit.source).toEqual(before);
+ const replacement=readStk(replaceSample(next,slot!,wav,'replacement.wav'));
+ expect(replacement.slots[slot!-1]!.parameters.colorCode).toBe(color!-1);
+});
