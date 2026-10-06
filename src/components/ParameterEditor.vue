@@ -25,7 +25,7 @@ function apply() {
     @submit.prevent="apply"
   >
     <fieldset :disabled="disabled">
-      <legend>Edit slot settings</legend>
+      <legend>Sound settings</legend>
       <div class="edit-fields">
         <label
           v-for="field in fields"
@@ -51,7 +51,7 @@ function apply() {
       </div>
     </fieldset>
     <p class="muted">
-      Pan: negative is left, 0 is center. Editing is temporarily limited to L53–R53. Apply settings before exporting or selecting another pad.
+      Pan: L53 (−53) to R53 (53), center 0. Apply changes before switching pads.
     </p>
     <p
       v-if="error"

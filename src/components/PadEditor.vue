@@ -15,16 +15,15 @@ defineEmits<{rename:[name:string];color:[color:number];clear:[]}>();
       ></label><button
         class="secondary-button"
         data-action="clear"
+        title="Remove sample and restore default pad settings"
         :disabled="disabled"
         @click="$emit('clear')"
       >
         Clear pad
       </button>
     </div>
-    <p class="muted">
-      Clear removes audio and restores default pad settings. Names use letters, numbers, spaces, hyphens and underscores.
-    </p>
-    <h3>Pad color <span class="muted">{{ color ?? 'Unknown' }} / 30 · device mapping unverified</span></h3>
+
+    <h3>Pad color <span class="muted">{{ color ?? 'Unknown' }} / 30</span></h3>
     <div
       class="color-grid"
       role="group"

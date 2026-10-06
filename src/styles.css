@@ -8,3 +8,34 @@
 .kit-toolbar{display:flex;gap:20px;align-items:end;margin:0 0 22px}.kit-toolbar label{flex:1;font-size:12px;color:#aabdac}.kit-toolbar input,.pad-editor input{display:block;background:#202921;color:#eef2ee;border:1px solid #526049;border-radius:5px;padding:10px;margin-top:6px;max-width:100%;width:320px}.pad-editor{margin-top:16px;padding:24px 26px;background:#191f20;border:1px solid #343c3b;border-radius:10px}.color-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:8px;max-width:620px}.color-grid button{background:var(--swatch);border:2px solid transparent;border-radius:5px;padding:9px 4px;color:#101415;font-weight:650}.color-grid button[aria-pressed=true]{outline:2px solid #eef2ee;outline-offset:2px}.sample-import summary{cursor:pointer}.sample-import details .edit-fields{margin-top:14px}@media(max-width:500px){.color-grid{grid-template-columns:repeat(6,1fr)}.kit-toolbar input{width:100%}}
 
 .pad-suggestion{display:block;margin-top:12px;font-size:10px;font-weight:400;color:#b4c0b9;line-height:1.4}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+
+/* One selected-pad workspace, with sample identity and playback shared across controls. */
+.selected-pad-editor{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px 28px;margin-top:16px;padding:20px 24px;border:1px solid #343c3b;border-radius:12px;background:#191f20}
+.selected-pad-editor>.detail-panel{grid-column:1/-1;padding:0 0 14px;border:0;border-bottom:1px solid #343c3b;margin:0;background:none}
+.selected-pad-editor>.sample-import,.selected-pad-editor>.pad-editor,.selected-pad-editor>.parameter-editor{padding:0;margin:0;border:0;background:none;min-width:0}
+.selected-pad-editor>.sample-import{grid-column:1;grid-row:2}
+.selected-pad-editor>.parameter-editor{grid-column:1;grid-row:3}
+.selected-pad-editor>.pad-editor{grid-column:2;grid-row:2 / span 2}
+.selected-pad-editor>.error-message,.selected-pad-editor>.notice,.selected-pad-editor>p{grid-column:1/-1;margin:0}
+.selected-pad-editor .detail-heading h2{font-size:17px;margin:3px 0}
+.selected-pad-editor .detail-panel>p{margin:5px 0;font-size:11px}
+.selected-pad-editor .sample-stats{display:inline-flex;gap:6px;margin-top:8px}
+.selected-pad-editor .sample-stats span{padding:3px 6px;font-size:10px}
+.sample-technical-details{margin-top:8px;font-size:11px;color:#95a49d}
+.sample-technical-details summary{cursor:pointer}
+.selected-pad-editor .parameter-grid{margin:12px 0}
+.selected-pad-editor .parameter-grid strong{font-size:16px}
+.selected-pad-editor .edit-fields{gap:8px}
+.selected-pad-editor .edit-fields input{width:76px}
+.selected-pad-editor .pad-editor .edit-fields{flex-wrap:nowrap}
+.selected-pad-editor .pad-editor label{flex:1;min-width:0}
+.selected-pad-editor .pad-editor input{width:100%}
+.selected-pad-editor .color-grid{gap:5px;grid-template-columns:repeat(10,minmax(0,1fr))}
+.selected-pad-editor .color-grid button{padding:4px 2px;font-size:11px}
+.selected-pad-editor h3{font-size:12px;margin:10px 0}
+.selected-pad-editor .muted{font-size:11px}
+.selected-pad-editor .parameter-editor legend{font-size:12px;margin-bottom:6px}
+@media(min-width:900px) and (min-height:740px){.kit-panel{position:sticky;top:8px;z-index:5;box-shadow:0 8px 20px #10141580}.kit-panel .section-heading{padding:12px 24px}.kit-panel .pad-scroll{padding:18px 26px}.kit-panel .pad-caption{padding:8px 24px}}
+@media(max-width:899px){.selected-pad-editor{grid-template-columns:1fr;padding:18px;gap:18px}.selected-pad-editor>.sample-import,.selected-pad-editor>.pad-editor,.selected-pad-editor>.parameter-editor{grid-column:1;grid-row:auto}.selected-pad-editor .parameter-grid{grid-template-columns:repeat(3,1fr)}}
+
+main>.kit-toolbar{margin-top:24px}

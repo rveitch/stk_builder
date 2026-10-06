@@ -72,9 +72,6 @@ onBeforeUnmount(() => { window.removeEventListener('beforeunload', guardNavigati
       ><span class="brand-mark">STK</span><span>BUILDER<small>SMPLTREK KIT WORKSPACE</small></span></a><span class="status-pill"><i /> ALL LOCAL</span>
     </header>
     <main>
-      <div class="page-heading">
-        <div><span class="eyebrow">KIT BUILDER</span><h1>Build your kit.</h1><p>Drop your sounds onto the pads. Make them your own.</p></div><span class="version-label">EDIT & EXPORT<br>PREVIEW RELEASE</span>
-      </div>
       <section class="kit-toolbar">
         <label>Kit name<input
           :value="kitName"
@@ -139,75 +136,83 @@ onBeforeUnmount(() => { window.removeEventListener('beforeunload', guardNavigati
       >
         {{ exportStatus }}
       </p>
-      <section class="kit-panel">
-        <header class="section-heading">
-          <div><span class="eyebrow">PAD LAYOUT</span><h2>{{ kitName }}</h2></div><span class="muted">{{ summary ? `${summary.populatedSlots} / 15 samples` : 'SmplTrek layout' }}</span>
-        </header>
-        <PadGrid
-          :kit="kit"
-          :selected-slot="selectedSlot"
-          :busy-slots="[...samples.entries].filter(([,entry])=>entry.busy).map(([slot])=>slot)"
-          @select="selectSlot"
-          @sample="loadSample"
-        />
-        <footer class="pad-caption">
-          <span>Upper: even slots · Lower: odd slots</span><span>{{ kit ? 'Drop WAVs onto pads to assign' : 'Open a kit to get started' }}</span>
-        </footer>
-      </section>
-      <SlotDetails
-        v-if="details"
-        :details="details"
-        :playing="playing"
-        :busy="previewBusy"
-        @play="play"
-        @stop="stop"
-      />
-      <SampleImport
-        v-if="kit && canEditKit(kit)"
-        :slot-number="selectedSlot"
-        :entry="samples.entries.get(selectedSlot)"
-        :disabled="loading"
-        @file="loadSample(selectedSlot,$event)"
-        @trim="(start,end)=>samples.adjust(selectedSlot,start,end)"
-      />
-      <PadEditor
-        v-if="details && kit && canEditKit(kit)"
-        :key="selectedSlot + ':' + details.name"
-        :name="details.sample ? details.name.replace(/\.wav$/i,'') : ''"
-        :populated="Boolean(details.sample)"
-        :color="details.color.deviceNumber"
-        :disabled="loading || Boolean(samples.entries.get(selectedSlot)?.busy)"
-        @rename="editPad('name',$event)"
-        @color="editPad('color',$event)"
-        @clear="editPad('clear')"
-      />
-      <ParameterEditor
-        v-if="kit && canEditKit(kit)"
-        :key="selectedSlot"
-        :values="kit.slots[selectedSlot - 1]!.parameters"
-        :disabled="loading"
-        @apply="applySettings"
-      />
-      <p
-        v-else-if="kit"
-        class="notice"
-      >
-        This settings version supports unchanged export only.
-      </p>
-      <p
-        v-if="editError"
-        role="alert"
-        class="error-message"
-      >
-        {{ editError }}
-      </p>
-      <p
-        v-if="previewError"
-        role="alert"
-        class="error-message"
-      >
-        {{ previewError }}
-      </p>
+      <div class="pad-workspace">
+        <section class="kit-panel">
+          <header class="section-heading">
+            <div><span class="eyebrow">PAD LAYOUT</span><h2>{{ kitName }}</h2></div><span class="muted">{{ summary ? `${summary.populatedSlots} / 15 samples` : 'SmplTrek layout' }}</span>
+          </header>
+          <PadGrid
+            :kit="kit"
+            :selected-slot="selectedSlot"
+            :busy-slots="[...samples.entries].filter(([,entry])=>entry.busy).map(([slot])=>slot)"
+            @select="selectSlot"
+            @sample="loadSample"
+          />
+          <footer class="pad-caption">
+            <span>Upper: even slots · Lower: odd slots</span><span>{{ kit ? 'Drop WAVs onto pads to assign' : 'Open a kit to get started' }}</span>
+          </footer>
+        </section>
+        <section
+          v-if="details"
+          class="selected-pad-editor"
+          aria-label="Selected pad editor"
+        >
+          <SlotDetails
+            v-if="details"
+            :details="details"
+            :playing="playing"
+            :busy="previewBusy"
+            @play="play"
+            @stop="stop"
+          />
+          <SampleImport
+            v-if="kit && canEditKit(kit)"
+            :slot-number="selectedSlot"
+            :entry="samples.entries.get(selectedSlot)"
+            :disabled="loading"
+            @file="loadSample(selectedSlot,$event)"
+            @trim="(start,end)=>samples.adjust(selectedSlot,start,end)"
+          />
+          <PadEditor
+            v-if="details && kit && canEditKit(kit)"
+            :key="selectedSlot + ':' + details.name"
+            :name="details.sample ? details.name.replace(/\.wav$/i,'') : ''"
+            :populated="Boolean(details.sample)"
+            :color="details.color.deviceNumber"
+            :disabled="loading || Boolean(samples.entries.get(selectedSlot)?.busy)"
+            @rename="editPad('name',$event)"
+            @color="editPad('color',$event)"
+            @clear="editPad('clear')"
+          />
+          <ParameterEditor
+            v-if="kit && canEditKit(kit)"
+            :key="selectedSlot"
+            :values="kit.slots[selectedSlot - 1]!.parameters"
+            :disabled="loading"
+            @apply="applySettings"
+          />
+          <p
+            v-else-if="kit"
+            class="notice"
+          >
+            This settings version supports unchanged export only.
+          </p>
+          <p
+            v-if="editError"
+            role="alert"
+            class="error-message"
+          >
+            {{ editError }}
+          </p>
+          <p
+            v-if="previewError"
+            role="alert"
+            class="error-message"
+          >
+            {{ previewError }}
+          </p>
+        </section>
+      </div>
       <template v-if="kit">
         <section
           v-if="kit.diagnostics.length"

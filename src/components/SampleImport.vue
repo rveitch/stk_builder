@@ -11,7 +11,7 @@ function choose(event:Event){const input=event.target as HTMLInputElement;const 
 <template>
   <section class="sample-import">
     <header class="detail-heading">
-      <div><span class="eyebrow">ASSIGN SAMPLE</span><h3>Drop a WAV onto pad {{ slotNumber }}</h3></div><label class="primary-button file-button">Choose WAV<input
+      <div><h3>Sample audio</h3></div><label class="primary-button file-button">Choose WAV<input
         type="file"
         accept=".wav,audio/wav"
         aria-label="Choose WAV"
@@ -20,7 +20,7 @@ function choose(event:Event){const input=event.target as HTMLInputElement;const 
       ></label>
     </header>
     <p class="muted">
-      Converts and assigns automatically. Longer samples use the first 2.7 seconds; adjust the trim below.
+      Drop a WAV onto this pad or choose a file. Converts automatically; long samples start with 0–2.7 s.
     </p>
     <p
       v-if="entry?.busy"
